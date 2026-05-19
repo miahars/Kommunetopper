@@ -953,9 +953,11 @@ function openModal(p) {
   const mGpx = p.gpxUrl || '';
   document.getElementById('modal-links').innerHTML =
     '<a class="modal-link-btn" href="' + norgeskartUrl + '" target="_blank">🗺 Norgeskart</a>' +
-    '<a class="modal-link-btn" href="#" onclick="downloadGPX(event,'' + p.navn.replace(/'/g,"\'") + '',' + p.lat + ',' + p.lon + ',' + p.hoyde + ')">⬇ Last ned GPX</a>';
+    '<a class="modal-link-btn" href="#" id="modal-gpx-link">&#8681; Last ned GPX</a>';
+  const gpxBtn = document.getElementById('modal-gpx-link');
+  if(gpxBtn) { const _p = p; gpxBtn.onclick = function(e){ e.preventDefault(); downloadGPX(e, _p.navn, _p.lat, _p.lon, _p.hoyde); }; }
 
-  // Search / direct links
+    // Search / direct links
   const ud2 = userData[modalKey] || {};
   const utUrl  = ud2.utnoUrl    || ('https://ut.no/turforslag/?q=' + encodeURIComponent(p.navn));
   const skUrl  = ud2.stikkutUrl || ('https://www.stikkut.no/search?query=' + encodeURIComponent(p.navn));
