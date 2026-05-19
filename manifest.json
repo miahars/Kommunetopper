@@ -2,9 +2,10 @@
   "name": "Kommunetopper Norge",
   "short_name": "Kommunetopper",
   "description": "Loggfør og utforsk alle kommunetoppene i Norge",
-  "start_url": "./kommunetopper.html",
+  "start_url": "/Kommunetopper/kommunetopper.html",
   "display": "standalone",
   "background_color": "#0f1117",
+  "scope": "/Kommunetopper/",
   "theme_color": "#0f1117",
   "orientation": "portrait-primary",
   "icons": [

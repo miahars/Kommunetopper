@@ -310,6 +310,13 @@
   .modal-date-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 7px 10px; border-radius: 8px; outline: none; width: 100%; }
   .modal-date-input:focus { border-color: var(--accent); }
 </style>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0f1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kommunetopper">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -672,7 +679,7 @@ async function saveData(key) {
 async function loginWithGithub() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'github',
-    options: { redirectTo: window.location.href }
+    options: { redirectTo: 'https://miahars.github.io/Kommunetopper/kommunetopper.html' }
   });
   if(error) showLoginError(error.message);
 }
@@ -1293,7 +1300,7 @@ document.getElementById('nav-home').classList.add('active');
 
 // Register service worker for PWA
 if('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 
 // Start auth flow
