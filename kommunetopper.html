@@ -316,6 +316,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kommunetopper">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -1307,24 +1308,23 @@ if('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 
-// Load Supabase dynamically, then start auth
-(async () => {
+// Supabase is already loaded via the window object (script tag in head)
+// Initialize it and start auth
+function startApp() {
   try {
-    await new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
+    if(!window.supabase) {
+      setTimeout(startApp, 100); // wait for supabase script
+      return;
+    }
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    await initAuth();
+    initAuth();
   } catch(e) {
     console.error('Startup failed:', e);
     document.getElementById('login-screen').style.display = 'flex';
     showLoginError('Kunne ikke laste inn – sjekk internett og prøv igjen.');
   }
-})();
+}
+startApp();
 </script>
 </body>
 </html>
