@@ -851,12 +851,13 @@ function toggleTheme() {
     const t = localStorage.getItem('kt_theme');
     if(t === 'light') {
       document.documentElement.setAttribute('data-theme', 'light');
-      // btn not ready yet, set after DOM
-      document.addEventListener('DOMContentLoaded', () => {
-        const b = document.getElementById('theme-btn');
-        if(b) b.textContent = '☀️';
-      });
     }
+    // Set icon once DOM is ready - always sync with actual theme
+    document.addEventListener('DOMContentLoaded', () => {
+      const b = document.getElementById('theme-btn');
+      const theme = document.documentElement.getAttribute('data-theme');
+      if(b) b.textContent = (theme === 'light') ? '☀️' : '🌙';
+    });
   } catch(e){}
 })();
 // ============================================================
