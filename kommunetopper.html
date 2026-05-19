@@ -317,7 +317,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kommunetopper">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -453,6 +452,79 @@
     </div>
   </div>
 </div>
+
+<script>
+// Early auth functions - defined before main script loads
+async function loginWithGithub() {
+  try {
+    if(!window._supabase) {
+      showLoginError('Appen laster fortsatt, prøv igjen om et sekund...');
+      return;
+    }
+    const { error } = await window._supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: { redirectTo: 'https://miahars.github.io/Kommunetopper/kommunetopper.html' }
+    });
+    if(error) showLoginError(error.message);
+  } catch(e) {
+    showLoginError('Feil: ' + e.message);
+  }
+}
+
+async function loginWithEmail() {
+  try {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if(!email || !password) { showLoginError('Fyll inn e-post og passord'); return; }
+    if(!window._supabase) { showLoginError('Appen laster, prøv igjen...'); return; }
+    let { data, error } = await window._supabase.auth.signInWithPassword({ email, password });
+    if(error && error.message.includes('Invalid login')) {
+      const res = await window._supabase.auth.signUp({ email, password });
+      error = res.error;
+      if(!error) { showLoginError('Sjekk e-posten din for bekreftelse, logg deretter inn.', true); return; }
+    }
+    if(error) showLoginError(error.message);
+  } catch(e) {
+    showLoginError('Feil: ' + e.message);
+  }
+}
+
+function showLoginError(msg, isInfo=false) {
+  const el = document.getElementById('login-error');
+  if(!el) return;
+  el.style.display = 'block';
+  el.style.background = isInfo ? 'rgba(91,140,255,.15)' : 'rgba(255,95,95,.15)';
+  el.style.borderColor = isInfo ? 'rgba(91,140,255,.3)' : 'rgba(255,95,95,.3)';
+  el.style.color = isInfo ? 'var(--accent)' : '#ff5f5f';
+  el.textContent = msg;
+}
+
+// Load Supabase and store globally as _supabase
+(function() {
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+  s.onload = function() {
+    window._supabase = window.supabase.createClient('https://hodrdhhdibazspqdkbuz.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhvZHJkaGhkaWJhenNwcWRrYnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzg2MzYsImV4cCI6MjA5NDc1NDYzNn0.wXROd3WEqsDyvF3SnOFZdtDHjj2E4vz6KEXlTrgSKho');
+    console.log('Kommunetopper v3.1 - Supabase ready');
+    // Check for existing session
+    window._supabase.auth.getSession().then(function({ data: { session } }) {
+      if(session && typeof onLogin === 'function') {
+        onLogin(session.user);
+      }
+    });
+    // Listen for auth changes after OAuth redirect
+    window._supabase.auth.onAuthStateChange(function(event, session) {
+      if(session && event === 'SIGNED_IN' && typeof onLogin === 'function') {
+        onLogin(session.user);
+      }
+    });
+  };
+  s.onerror = function() {
+    showLoginError('Kunne ikke laste Supabase – sjekk internett.');
+  };
+  document.head.appendChild(s);
+})();
+</script>
 
 <!-- TABLE VIEW -->
 <div id="view-table" class="view">
@@ -601,9 +673,10 @@ const PEAKS_DATA = [{"kommune": "Alstahaug", "navn": "Botnkrona", "fylke": "Nord
 // ============================================================
 // SUPABASE SETUP
 // ============================================================
-const SUPABASE_URL = 'https://hodrdhhdibazspqdkbuz.supabase.co';
+const SUPABASE_URL = 'https://hodrdhhdibazspqdkbuz.window._supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhvZHJkaGhkaWJhenNwcWRrYnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzg2MzYsImV4cCI6MjA5NDc1NDYzNn0.wXROd3WEqsDyvF3SnOFZdtDHjj2E4vz6KEXlTrgSKho';
-let supabase = null;
+// window._supabase client is window._supabase, loaded by early script
+Object.defineProperty(window, 'supabase_client', { get: () => window._supabase });
 
 let currentUser = null;
 let userData = {};
@@ -629,7 +702,7 @@ function saveLocalCache() {
 async function loadUserData() {
   if(!currentUser) return;
   try {
-    const { data, error } = await supabase
+    const { data, error } = await window._supabase
       .from('peak_logs')
       .select('*')
       .eq('user_id', currentUser.id);
@@ -660,7 +733,7 @@ async function saveData(key) {
   if(!currentUser) return;
   const d = userData[key] || {};
   try {
-    await supabase.from('peak_logs').upsert({
+    await window._supabase.from('peak_logs').upsert({
       user_id: currentUser.id,
       peak_key: key,
       done: d.done || false,
@@ -679,39 +752,19 @@ async function saveData(key) {
 
 // ── AUTH ────────────────────────────────────────────────────
 async function loginWithGithub() {
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await window._supabase.auth.signInWithOAuth({
     provider: 'github',
     options: { redirectTo: 'https://miahars.github.io/Kommunetopper/kommunetopper.html' }
   });
   if(error) showLoginError(error.message);
 }
 
-async function loginWithEmail() {
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  if(!email || !password) { showLoginError('Fyll inn e-post og passord'); return; }
-  // Try sign in first, then sign up
-  let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if(error && error.message.includes('Invalid login')) {
-    const res = await supabase.auth.signUp({ email, password });
-    error = res.error;
-    data = res.data;
-    if(!error) showLoginError('Sjekk e-posten din for bekreftelse, logg deretter inn.', true);
-  }
-  if(error) showLoginError(error.message);
-}
+// loginWithEmail defined in early script
 
-function showLoginError(msg, isInfo=false) {
-  const el = document.getElementById('login-error');
-  el.style.display = 'block';
-  el.style.background = isInfo ? 'rgba(91,140,255,.15)' : 'rgba(255,95,95,.15)';
-  el.style.borderColor = isInfo ? 'rgba(91,140,255,.3)' : 'rgba(255,95,95,.3)';
-  el.style.color = isInfo ? 'var(--accent)' : '#ff5f5f';
-  el.textContent = msg;
-}
+// showLoginError defined in early script
 
 async function logout() {
-  await supabase.auth.signOut();
+  await window._supabase.auth.signOut();
   currentUser = null;
   userData = {};
   document.getElementById('user-menu').style.display = 'none';
@@ -722,7 +775,7 @@ async function logout() {
 async function initAuth() {
   try {
     // Check for existing session
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await window._supabase.auth.getSession();
     if(session) {
       await onLogin(session.user);
     } else {
@@ -734,7 +787,7 @@ async function initAuth() {
     showLoginError('Kunne ikke koble til – sjekk internett og prøv igjen.');
   }
   // Listen for auth changes (e.g. after OAuth redirect)
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  window._supabase.auth.onAuthStateChange(async (event, session) => {
     if(session && event === 'SIGNED_IN') {
       await onLogin(session.user);
     }
@@ -1314,11 +1367,11 @@ if('serviceWorker' in navigator) {
 // Initialize it and start auth
 function startApp() {
   try {
-    if(!window.supabase) {
-      setTimeout(startApp, 100); // wait for supabase script
+    if(!window.window._supabase) {
+      setTimeout(startApp, 100); // wait for window._supabase script
       return;
     }
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window._supabase = window.window._supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     initAuth();
   } catch(e) {
     console.error('Startup failed:', e);
