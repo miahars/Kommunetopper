@@ -1367,21 +1367,12 @@ if('serviceWorker' in navigator) {
 
 // Supabase is already loaded via the window object (script tag in head)
 // Initialize it and start auth
-function startApp() {
-  try {
-    if(!window.window._supabase) {
-      setTimeout(startApp, 100); // wait for window._supabase script
-      return;
-    }
-    window._supabase = window.window._supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    initAuth();
-  } catch(e) {
-    console.error('Startup failed:', e);
-    document.getElementById('login-screen').style.display = 'flex';
-    showLoginError('Kunne ikke laste inn – sjekk internett og prøv igjen.');
-  }
+// Auth and Supabase init is handled entirely by the early script above.
+// The early script calls initAuth() once window._supabase is ready.
+// Register service worker for PWA offline support.
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
-startApp();
 </script>
 </body>
 </html>
